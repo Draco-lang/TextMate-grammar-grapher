@@ -14,8 +14,15 @@ if (process.argv.length < 3) {
 }
 let sourcePath = process.argv[2];
 
-let sourceCode;
+// Collect exclusion list
+let exclusionList = [];
+if (process.argv.length >= 4 && process.argv[3] == '--exclude') {
+    // All remaining args are exclusion
+    exclusionList = process.argv.slice(4);
+}
+
 // Load it, depending on if it's an URL or file path
+let sourceCode;
 if (isValidHttpUrl(sourcePath)) {
     sourceCode = fetch(sourcePath).text();
 }
@@ -33,6 +40,7 @@ console.log('digraph TextMate {');
 // We annotate top-level with $self
 grammar.patterns.forEach(pattern => {
     for (let referenced of referencedPatterns(pattern)) {
+        if (exclusionList.includes(referenced)) continue;
         console.log(`  "$self" -> "${referenced}";`);
     }
 });
@@ -40,7 +48,9 @@ grammar.patterns.forEach(pattern => {
 // Go through the repository
 if ('repository' in grammar) {
     for (let [patternName, pattern] of Object.entries(grammar.repository)) {
+        if (exclusionList.includes(patternName)) continue;
         for (let referenced of referencedPatterns(pattern)) {
+            if (exclusionList.includes(referenced)) continue;
             console.log(`  "${patternName}" -> "${referenced}";`);
         }
     }
