@@ -1,0 +1,26 @@
+{
+  "name": "graph-tmgrammar",
+  "version": "1.0.0",
+  "description": "Graphs TextMate grammar pattern interdependencies.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "graph-tmgrammar": "./index.js"
+  },
+  "keywords": [
+    "text-mate",
+    "graph",
+    "grammar",
+    "syntax"
+  ],
+  "author": "LPeter1997",
+  "license": "MIT",
+  "dependencies": {
+    "cson-parser": "^4.0.9",
+    "js-yaml": "^4.1.0",
+    "plist": "^3.0.6",
+    "sync-fetch": "^0.4.1"
+  }
+}
