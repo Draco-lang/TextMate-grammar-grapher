@@ -16,6 +16,7 @@ commander
     .option('-e, --exclude <names...>', 'a list of node names to exclude from the output', [])
     .option('-r, --regex', 'allows the output to include regexes')
     .option('-l, --label', 'enables labeling the arrows for annotating the relations')
+    .option('-u, --uncomment', 'uncomments all regexes')
     .action((sourcePath, options) => {
         // Load the source text
         let sourceCode = loadSource(sourcePath);
@@ -75,33 +76,32 @@ function writeGraph(grammar, options) {
     let exclusionList = options.exclude;
     let includeRegexes = options.regex;
     let labelArrows = options.label;
+    let uncommentRx = options.uncomment;
+
+    function writePattern(patternName, pattern) {
+        patternName = escapeString(patternName);
+        if (exclusionList.includes(patternName)) return;
+        for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
+            if (isRegex && !includeRegexes) continue;
+            if (exclusionList.includes(referenced)) continue;
+            referenced = escapeString(referenced);
+            if (isRegex && uncommentRx) referenced = uncommentRegex(referenced);
+            process.stdout.write(`  "${patternName}" -> "${referenced}"`);
+            if (labelArrows) process.stdout.write(` [label="${label}"]`);
+            process.stdout.write(';\n');
+        }
+    }
 
     // Write the DOT header
     process.stdout.write('digraph TextMate {');
 
-    // Go through the top-level patterns
     // We annotate top-level with $self
-    grammar.patterns.forEach(pattern => {
-        for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
-            if (isRegex && !includeRegexes) continue;
-            if (exclusionList.includes(referenced)) continue;
-            process.stdout.write(`  "$self" -> "${escapeString(referenced)}"`);
-            if (labelArrows) process.stdout.write(` [label="${label}"]`);
-            process.stdout.write(';\n');
-        }
-    });
+    grammar.patterns.forEach(pattern => writePattern('$self', pattern));
 
     // Go through the repository
     if ('repository' in grammar) {
         for (let [patternName, pattern] of Object.entries(grammar.repository)) {
-            if (exclusionList.includes(patternName)) continue;
-            for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
-                if (isRegex && !includeRegexes) continue;
-                if (exclusionList.includes(referenced)) continue;
-                process.stdout.write(`  "${escapeString(patternName)}" -> "${escapeString(referenced)}"`);
-                if (labelArrows) process.stdout.write(` [label="${label}"]`);
-                process.stdout.write(';\n');
-            }
+            writePattern(patternName, pattern);
         }
     }
 
@@ -136,4 +136,9 @@ function escapeString(string) {
     return string
         .replaceAll('\\', '\\\\')
         .replaceAll('"', '\\"');
+}
+
+function uncommentRegex(string) {
+    return string
+        .replace(/ *#.*/g, '');
 }
