@@ -8,6 +8,8 @@ const yaml = require('js-yaml');
 const cson = require('cson-parser');
 const plist = require('plist');
 
+var surroundCount = 0;
+
 // Program options
 commander
     .name('graph-tmgrammar')
@@ -81,7 +83,7 @@ function writeGraph(grammar, options) {
     function writePattern(patternName, pattern) {
         patternName = escapeString(patternName);
         if (exclusionList.includes(patternName)) return;
-        for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
+        for (let { referenced, label, isRegex, children } of referencedPatterns(pattern, includeRegexes)) {
             if (isRegex && !includeRegexes) continue;
             if (exclusionList.includes(referenced)) continue;
             referenced = escapeString(referenced);
@@ -89,6 +91,18 @@ function writeGraph(grammar, options) {
             process.stdout.write(`  "${patternName}" -> "${referenced}"`);
             if (labelArrows) process.stdout.write(` [label="${label}"]`);
             process.stdout.write(';\n');
+
+            if (children) {
+                process.stdout.write(`  "${referenced}" [label=""];\n`);
+                for (let child of children) {
+                    let subReferenced = child.referenced;
+                    subReferenced = escapeString(subReferenced);
+                    if (uncommentRx) subReferenced = uncommentRegex(subReferenced);
+                    process.stdout.write(`  "${referenced}" -> "${subReferenced}"`);
+                    if (labelArrows) process.stdout.write(` [label="${child.label}"]`);
+                    process.stdout.write(';\n');
+                }
+            }
         }
     }
 
@@ -109,15 +123,15 @@ function writeGraph(grammar, options) {
     process.stdout.write('}');
 }
 
-// Structure of reference is { referenced, label, isRegex }
+// Structure of reference is { referenced, label, isRegex, children }
 function* referencedPatterns(pattern, includeRegex) {
     if ('include' in pattern) {
         if (pattern.include[0] == '#') {
             let name = pattern.include.substring(1);
-            yield { referenced: name, label: 'include', isRegex: false };
+            yield { referenced: name, label: 'include', isRegex: false, children: null };
         }
         else {
-            yield { referenced: pattern.include, label: 'include', isRegex: false };
+            yield { referenced: pattern.include, label: 'include', isRegex: false, children: null };
         }
     }
     if ('patterns' in pattern) {
@@ -127,8 +141,13 @@ function* referencedPatterns(pattern, includeRegex) {
     }
 
     if (includeRegex) {
-        if ('match' in pattern) yield { referenced: pattern.match, label: 'match', isRegex: true };
-        if ('begin' in pattern) yield { referenced: `begin: ${pattern.begin}\n\nend: ${pattern.end}`, label: 'surround', isRegex: true };
+        if ('match' in pattern) yield { referenced: pattern.match, label: 'match', isRegex: true, children: null };
+        if ('begin' in pattern) yield {
+            referenced: `__surround${surroundCount++}`,
+            label: 'surround',
+            isRegex: true,
+            children: [{ referenced: pattern.begin, label: 'begin' }, { referenced: pattern.end, label: 'end' }],
+        };
     }
 }
 
