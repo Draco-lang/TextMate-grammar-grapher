@@ -12,10 +12,10 @@ const plist = require('plist');
 commander
     .name('graph-tmgrammar')
     .description('Graphs TextMate grammar interdependencies in different formats')
-    .addArgument(new commander.Argument('<source>', 'The source path or URL for the TextMate grammar').argRequired())
-    .option('-e, --exclude <names...>', 'A list of node names to exclude from the output', [])
-    .option('-r, --regex', 'Allows the output to include regexes')
-    .option('-l, --label', 'Enables labeling the arrows for annotating the relations')
+    .addArgument(new commander.Argument('<source>', 'the source path or URL for the TextMate grammar').argRequired())
+    .option('-e, --exclude <names...>', 'a list of node names to exclude from the output', [])
+    .option('-r, --regex', 'allows the output to include regexes')
+    .option('-l, --label', 'enables labeling the arrows for annotating the relations')
     .action((sourcePath, options) => {
         // Load the source text
         let sourceCode = loadSource(sourcePath);

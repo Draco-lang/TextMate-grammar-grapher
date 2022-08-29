@@ -2,29 +2,16 @@
 
 This is a tool to get a DOT graph output for the pattern interdependencies in a TextMate grammar file.
 
-Usage:
+Usage: `graph-tmgrammar [options] <source>`
 
-```
-node . path-or-url
-```
+Arguments:
+  * source: The source path or URL for the TextMate grammar
 
-You can also install it as a global tool with:
-
-```
-npm install -g .
-```
-
-Then, usage becomes:
-
-```
-graph-tmgrammar path-or-url
-```
-
-Optionally, you can provide a list of patterns to exclude from the result, using the `--exclude` flag:
-
-```
-graph-tmgrammar path-or-url --exclude foo bar baz
-```
+Options:
+  * `-e, --exclude <names...>`: A list of node names to exclude from the output
+  * `-r, --regex`: Allows the output to include regexes
+  * `-l, --label`: Enables labeling the arrows for annotating the relations
+  * `-h, --help`: Display help for command
 
 Supported formats:
  * YAML
