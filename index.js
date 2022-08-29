@@ -14,6 +14,8 @@ commander
     .description('Graphs TextMate grammar interdependencies in different formats')
     .addArgument(new commander.Argument('<source>', 'The source path or URL for the TextMate grammar').argRequired())
     .option('-e, --exclude <names...>', 'A list of node names to exclude from the output', [])
+    .option('-r, --regex', 'Allows the output to include regexes')
+    .option('-l, --label', 'Enables labeling the arrows for annotating the relations')
     .action((sourcePath, options) => {
         // Load the source text
         let sourceCode = loadSource(sourcePath);
@@ -71,16 +73,21 @@ function isValidHttpUrl(string) {
 
 function writeGraph(grammar, options) {
     let exclusionList = options.exclude;
+    let includeRegexes = options.regex;
+    let labelArrows = options.label;
 
     // Write the DOT header
-    console.log('digraph TextMate {');
+    process.stdout.write('digraph TextMate {');
 
     // Go through the top-level patterns
     // We annotate top-level with $self
     grammar.patterns.forEach(pattern => {
-        for (let referenced of referencedPatterns(pattern)) {
+        for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
+            if (isRegex && !includeRegexes) continue;
             if (exclusionList.includes(referenced)) continue;
-            console.log(`  "$self" -> "${referenced}";`);
+            process.stdout.write(`  "$self" -> "${escapeString(referenced)}"`);
+            if (labelArrows) process.stdout.write(` [label="${label}"]`);
+            process.stdout.write(';\n');
         }
     });
 
@@ -88,29 +95,46 @@ function writeGraph(grammar, options) {
     if ('repository' in grammar) {
         for (let [patternName, pattern] of Object.entries(grammar.repository)) {
             if (exclusionList.includes(patternName)) continue;
-            for (let referenced of referencedPatterns(pattern)) {
+            for (let { referenced, label, isRegex } of referencedPatterns(pattern, includeRegexes)) {
+                if (isRegex && !includeRegexes) continue;
                 if (exclusionList.includes(referenced)) continue;
-                console.log(`  "${patternName}" -> "${referenced}";`);
+                process.stdout.write(`  "${escapeString(patternName)}" -> "${escapeString(referenced)}"`);
+                if (labelArrows) process.stdout.write(` [label="${label}"]`);
+                process.stdout.write(';\n');
             }
         }
     }
 
     // Write the DOT footer
-    console.log('}');
+    process.stdout.write('}');
 }
 
-function* referencedPatterns(pattern) {
+// Structure of reference is { referenced, label, isRegex }
+function* referencedPatterns(pattern, includeRegex) {
     if ('include' in pattern) {
         if (pattern.include[0] == '#') {
-            yield pattern.include.substring(1);
+            let name = pattern.include.substring(1);
+            yield { referenced: name, label: 'include', isRegex: false };
         }
         else {
-            yield pattern.include;
+            yield { referenced: pattern.include, label: 'include', isRegex: false };
         }
     }
-    else if ('patterns' in pattern) {
+    if ('patterns' in pattern) {
         for (let referenced of pattern.patterns) {
-            yield* referencedPatterns(referenced);
+            yield* referencedPatterns(referenced, includeRegex);
         }
     }
+
+    if (includeRegex) {
+        if ('match' in pattern) yield { referenced: pattern.match, label: 'match', isRegex: true };
+        if ('begin' in pattern) yield { referenced: pattern.begin, label: 'begin', isRegex: true };
+        if ('end' in pattern) yield { referenced: pattern.end, label: 'end', isRegex: true };
+    }
+}
+
+function escapeString(string) {
+    return string
+        .replaceAll('\\', '\\\\')
+        .replaceAll('"', '\\"');
 }
