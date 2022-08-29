@@ -128,8 +128,7 @@ function* referencedPatterns(pattern, includeRegex) {
 
     if (includeRegex) {
         if ('match' in pattern) yield { referenced: pattern.match, label: 'match', isRegex: true };
-        if ('begin' in pattern) yield { referenced: pattern.begin, label: 'begin', isRegex: true };
-        if ('end' in pattern) yield { referenced: pattern.end, label: 'end', isRegex: true };
+        if ('begin' in pattern) yield { referenced: `begin: ${pattern.begin}\n\nend: ${pattern.end}`, label: 'surround', isRegex: true };
     }
 }
 
