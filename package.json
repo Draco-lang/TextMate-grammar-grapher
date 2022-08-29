@@ -18,6 +18,7 @@
   "author": "LPeter1997",
   "license": "MIT",
   "dependencies": {
+    "commander": "^9.4.0",
     "cson-parser": "^4.0.9",
     "js-yaml": "^4.1.0",
     "plist": "^3.0.6",
