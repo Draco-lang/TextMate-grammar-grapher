@@ -107,7 +107,7 @@ function writeGraph(grammar, options) {
     }
 
     // Write the DOT header
-    process.stdout.write('digraph TextMate {');
+    process.stdout.write('digraph TextMate {\n');
 
     // We annotate top-level with $self
     grammar.patterns.forEach(pattern => writePattern('$self', pattern));
